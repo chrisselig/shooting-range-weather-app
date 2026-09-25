@@ -29,7 +29,10 @@ export function StationCard({ weather }: { weather: StationWeather }) {
   return (
     <div className="rounded-2xl bg-surface border border-hairline p-5 shadow-sm">
       <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-2">
-        <h2 className="text-lg font-semibold text-ink-primary">{station.name}</h2>
+        <div>
+          <h2 className="text-lg font-semibold text-ink-primary">{station.name}</h2>
+          <span className="text-xs text-accent">{station.range}</span>
+        </div>
         <span className="text-xs text-ink-muted">
           {distanceKm.toFixed(0)} km from {regionName}
         </span>
