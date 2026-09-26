@@ -38,6 +38,7 @@ type RawFeature = {
       station: { value: Bilingual<string> };
     };
     forecastGroup: { forecasts: RawForecastPeriod[] };
+    riseSet?: { sunrise: Bilingual<string>; sunset: Bilingual<string> };
   };
   geometry: { coordinates: [number, number] };
 };
@@ -62,8 +63,14 @@ export type StationWeather = {
   windSpeedKmh: number;
   windGustKmh: number | null;
   windDirection: string;
+  sunrise: string | null;
+  sunset: string | null;
   forecast: ForecastPeriod[];
 };
+
+export type StationWeatherResult =
+  | { status: "ok"; data: StationWeather }
+  | { status: "error"; station: Station; message: string };
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -105,6 +112,8 @@ function toStationWeather(station: Station, feature: RawFeature): StationWeather
     windSpeedKmh: cc.wind.speed.value.en,
     windGustKmh: cc.wind.gust ? cc.wind.gust.value.en : null,
     windDirection: cc.wind.direction.value.en,
+    sunrise: p.riseSet?.sunrise.en ?? null,
+    sunset: p.riseSet?.sunset.en ?? null,
     forecast: p.forecastGroup.forecasts.slice(0, 6).map((f) => ({
       name: f.period.textForecastName.en,
       tempSummary: f.temperatures.textSummary.en,
@@ -114,11 +123,19 @@ function toStationWeather(station: Station, feature: RawFeature): StationWeather
   };
 }
 
-export async function getStationsWeather(): Promise<StationWeather[]> {
+export async function getStationsWeather(): Promise<StationWeatherResult[]> {
   return Promise.all(
-    STATIONS.map(async (station) => {
-      const feature = await fetchRegion(station.geometRegionId);
-      return toStationWeather(station, feature);
+    STATIONS.map(async (station): Promise<StationWeatherResult> => {
+      try {
+        const feature = await fetchRegion(station.geometRegionId);
+        return { status: "ok", data: toStationWeather(station, feature) };
+      } catch (err) {
+        return {
+          status: "error",
+          station,
+          message: err instanceof Error ? err.message : "Unknown error",
+        };
+      }
     }),
   );
 }

@@ -1,5 +1,11 @@
 import type { StationWeather } from "@/lib/geomet";
-import { formatObservedTime } from "@/lib/format";
+import { formatObservedTime, formatTime } from "@/lib/format";
+
+// Wind thresholds for range use (precision/safety), not general weather risk.
+const SERIOUS_WIND_KMH = 40;
+const SERIOUS_GUST_KMH = 60;
+const WARNING_WIND_KMH = 25;
+const WARNING_GUST_KMH = 40;
 
 export function StationCard({ weather }: { weather: StationWeather }) {
   const {
@@ -15,6 +21,8 @@ export function StationCard({ weather }: { weather: StationWeather }) {
     windSpeedKmh,
     windGustKmh,
     windDirection,
+    sunrise,
+    sunset,
     forecast,
   } = weather;
 
@@ -25,6 +33,14 @@ export function StationCard({ weather }: { weather: StationWeather }) {
     tempC <= 10 && windChillC !== null && Math.round(windChillC) !== Math.round(tempC)
       ? windChillC
       : null;
+
+  const gust = windGustKmh ?? 0;
+  const windLevel =
+    windSpeedKmh >= SERIOUS_WIND_KMH || gust >= SERIOUS_GUST_KMH
+      ? "serious"
+      : windSpeedKmh >= WARNING_WIND_KMH || gust >= WARNING_GUST_KMH
+        ? "warning"
+        : null;
 
   return (
     <div className="rounded-2xl bg-surface border border-hairline p-5 shadow-sm">
@@ -50,6 +66,18 @@ export function StationCard({ weather }: { weather: StationWeather }) {
         </div>
       </div>
 
+      {windLevel && (
+        <div
+          className={`mt-3 rounded-md px-2 py-1 text-xs font-medium ${
+            windLevel === "serious"
+              ? "bg-status-serious/15 text-status-serious"
+              : "bg-status-warning/15 text-status-warning"
+          }`}
+        >
+          {windLevel === "serious" ? "Very windy" : "Windy"} — expect wind drift
+        </div>
+      )}
+
       <dl className="mt-4 grid grid-cols-2 gap-y-1 text-sm text-ink-secondary">
         <dt className="text-ink-muted">Wind</dt>
         <dd className="tabular-nums">
@@ -58,6 +86,14 @@ export function StationCard({ weather }: { weather: StationWeather }) {
         </dd>
         <dt className="text-ink-muted">Humidity</dt>
         <dd className="tabular-nums">{humidityPct}%</dd>
+        {sunrise && sunset && (
+          <>
+            <dt className="text-ink-muted">Daylight</dt>
+            <dd className="tabular-nums">
+              {formatTime(sunrise)}–{formatTime(sunset)}
+            </dd>
+          </>
+        )}
       </dl>
 
       <p className="mt-2 text-xs text-ink-muted">
